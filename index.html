@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contract Review Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      padding: 24px;
+      color: #1a1a2e;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      color: #2d6cdf;
+      font-weight: 700;
+    }
+
+    header p {
+      color: #666;
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 1300px;
+      margin: 0 auto 24px;
+    }
+
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    .card label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      color: #444;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    .badge-1 { background: #e8f0fe; color: #2d6cdf; }
+    .badge-2 { background: #fce8e6; color: #c5221f; }
+
+    textarea {
+      width: 100%;
+      height: 280px;
+      border: 1.5px solid #dde1e7;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      color: #333;
+    }
+
+    textarea:focus { border-color: #2d6cdf; }
+
+    .actions {
+      max-width: 1300px;
+      margin: 0 auto 28px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    #btnAnalyze {
+      background: #2d6cdf;
+      color: #fff;
+    }
+
+    #btnAnalyze:hover { background: #1a57c8; }
+    #btnAnalyze:disabled { background: #a0b4d6; cursor: not-allowed; }
+
+    #btnClear {
+      background: #f0f2f5;
+      color: #555;
+    }
+
+    #btnClear:hover { background: #e2e6ea; }
+
+    #spinner {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      color: #2d6cdf;
+      font-size: 0.9rem;
+    }
+
+    .dot-flashing {
+      width: 8px; height: 8px;
+      background: #2d6cdf;
+      border-radius: 50%;
+      animation: dotFlash 1s infinite alternate;
+    }
+
+    @keyframes dotFlash {
+      0% { opacity: 0.2; } 100% { opacity: 1; }
+    }
+
+    /* Result area */
+    #resultArea {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: none;
+    }
+
+    #resultArea .card { padding: 28px; }
+
+    #resultArea h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #2d6cdf;
+      border-bottom: 2px solid #e8f0fe;
+      padding-bottom: 10px;
+    }
+
+    /* Summary boxes */
+    .summary-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .summary-box {
+      flex: 1;
+      min-width: 120px;
+      border-radius: 10px;
+      padding: 14px 18px;
+      text-align: center;
+    }
+
+    .summary-box .num {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .summary-box .lbl {
+      font-size: 0.78rem;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .box-pass { background: #e6f4ea; color: #1e7e34; }
+    .box-fail { background: #fce8e6; color: #c5221f; }
+    .box-warn { background: #fff3cd; color: #856404; }
+    .box-total { background: #e8f0fe; color: #2d6cdf; }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-bottom: 24px;
+    }
+
+    thead tr {
+      background: #f5f7fa;
+    }
+
+    th {
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      color: #555;
+      border-bottom: 2px solid #e0e4ea;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #edf0f5;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbff; }
+
+    .status-pass { color: #1e7e34; font-weight: 700; }
+    .status-fail { color: #c5221f; font-weight: 700; }
+    .status-warn { color: #856404; font-weight: 700; }
+
+    /* Conclusion */
+    .conclusion {
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-size: 0.92rem;
+      line-height: 1.7;
+    }
+
+    .conclusion.pass { background: #e6f4ea; border-left: 4px solid #28a745; }
+    .conclusion.fail { background: #fce8e6; border-left: 4px solid #dc3545; }
+    .conclusion.warn { background: #fff3cd; border-left: 4px solid #ffc107; }
+
+    .conclusion strong { display: block; font-size: 1rem; margin-bottom: 6px; }
+
+    /* Raw output fallback */
+    #rawOutput {
+      white-space: pre-wrap;
+      font-size: 0.875rem;
+      line-height: 1.7;
+      color: #333;
+    }
+
+    .error-box {
+      background: #fce8e6;
+      border-left: 4px solid #dc3545;
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: #c5221f;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🔍 Contract Review Agent</h1>
+  <p>Đối chiếu hợp đồng với tiêu chí xét duyệt tự động bằng AI</p>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <label><span class="badge badge-1">Input 1</span>Tiêu chí xét duyệt</label>
+    <textarea id="criteria" placeholder="Dán nội dung tiêu chí xét duyệt vào đây...&#10;&#10;Ví dụ:&#10;- ZBS gửi bằng SĐT: tính 85% đơn giá&#10;- ZBS ≤ 5000 tin/tháng: Miễn phí&#10;..."></textarea>
+  </div>
+  <div class="card">
+    <label><span class="badge badge-2">Input 2</span>Nội dung hợp đồng cần review</label>
+    <textarea id="contract" placeholder="Dán nội dung hợp đồng cần kiểm tra vào đây..."></textarea>
+  </div>
+</div>
+
+<div class="actions">
+  <button id="btnAnalyze" onclick="analyze()">⚡ Phân tích ngay</button>
+  <button id="btnClear" onclick="clearAll()">🗑 Xóa</button>
+  <div id="spinner">
+    <div class="dot-flashing"></div>
+    Đang phân tích...
+  </div>
+</div>
+
+<div id="resultArea">
+  <div class="card">
+    <h2>📋 Kết quả đối chiếu</h2>
+    <div id="resultContent"></div>
+  </div>
+</div>
+
+<script>
+  const API_URL = 'https://maas-llm-aiplatform-hcm.api.vngcloud.vn/v1/chat/completions';
+  const API_KEY = 'vn--y8uM4wD9tCxWfPagJmNeeCiFa0MYe6da182fc22454e2e9e4fe07d4dbbfe27E_Z_d5Quu_7su_-2Vc0a-7h9XyDryKM';
+  const MODEL   = 'minimax/minimax-m2.5';
+
+  function buildPrompt(criteria, contract) {
+    return `Bạn là chuyên gia pháp lý hợp đồng. Nhiệm vụ: đối chiếu hợp đồng với bộ tiêu chí xét duyệt và xuất báo cáo JSON.
+
+## TIÊU CHÍ XÉT DUYỆT:
+${criteria}
+
+## NỘI DUNG HỢP ĐỒNG:
+${contract}
+
+## YÊU CẦU OUTPUT:
+Trả về JSON hợp lệ (KHÔNG có markdown code block, KHÔNG có text thừa), theo cấu trúc:
+{
+  "items": [
+    {
+      "stt": 1,
+      "tieu_chi": "Mô tả ngắn tiêu chí",
+      "yeu_cau": "Giá trị/nội dung yêu cầu theo tiêu chí",
+      "hop_dong": "Nội dung thực tế trong hợp đồng (trích dẫn ngắn)",
+      "ket_qua": "DAT" | "THIEU" | "SAI",
+      "ghi_chu": "Giải thích ngắn gọn vấn đề (nếu có)"
+    }
+  ],
+  "tong_ket": {
+    "dat": <số tiêu chí đạt>,
+    "thieu": <số tiêu chí thiếu>,
+    "sai": <số tiêu chí sai giá trị>,
+    "tong": <tổng số tiêu chí>,
+    "ket_luan": "DAT" | "KHONG_DAT",
+    "tom_tat": "1-2 câu tóm tắt tổng thể kết quả và các vấn đề chính cần xử lý"
+  }
+}`;
+  }
+
+  async function analyze() {
+    const criteria = document.getElementById('criteria').value.trim();
+    const contract = document.getElementById('contract').value.trim();
+
+    if (!criteria) { alert('Vui lòng nhập Tiêu chí xét duyệt (Input 1)'); return; }
+    if (!contract)  { alert('Vui lòng nhập Nội dung hợp đồng (Input 2)'); return; }
+
+    const btn = document.getElementById('btnAnalyze');
+    const spinner = document.getElementById('spinner');
+    btn.disabled = true;
+    spinner.style.display = 'flex';
+    document.getElementById('resultArea').style.display = 'none';
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [
+            { role: 'assistant', content: 'You are a legal contract review expert. Always respond with valid JSON only.' },
+            { role: 'user', content: buildPrompt(criteria, contract) }
+          ],
+          max_tokens: 3000,
+          temperature: 0.2,
+          top_p: 0.95,
+          presence_penalty: 0
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`API lỗi ${response.status}: ${err}`);
+      }
+
+      const data = await response.json();
+      const raw = data.choices?.[0]?.message?.content || '';
+      renderResult(raw);
+
+    } catch (e) {
+      document.getElementById('resultArea').style.display = 'block';
+      document.getElementById('resultContent').innerHTML = `<div class="error-box">❌ Lỗi: ${e.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+    }
+  }
+
+  function renderResult(raw) {
+    const area = document.getElementById('resultArea');
+    const content = document.getElementById('resultContent');
+    area.style.display = 'block';
+    area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Clean up possible markdown fences
+    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+    let data;
+    try {
+      data = JSON.parse(cleaned);
+    } catch {
+      content.innerHTML = `<pre id="rawOutput">${escHtml(raw)}</pre>`;
+      return;
+    }
+
+    const items = data.items || [];
+    const tong  = data.tong_ket || {};
+
+    const passCount  = tong.dat    ?? items.filter(i => i.ket_qua === 'DAT').length;
+    const failCount  = tong.thieu  ?? items.filter(i => i.ket_qua === 'THIEU').length;
+    const warnCount  = tong.sai    ?? items.filter(i => i.ket_qua === 'SAI').length;
+    const totalCount = tong.tong   ?? items.length;
+    const verdict    = tong.ket_luan || (failCount + warnCount === 0 ? 'DAT' : 'KHONG_DAT');
+    const summary    = tong.tom_tat || '';
+
+    // Summary boxes
+    let html = `
+      <div class="summary-row">
+        <div class="summary-box box-total"><div class="num">${totalCount}</div><div class="lbl">Tổng tiêu chí</div></div>
+        <div class="summary-box box-pass"><div class="num">${passCount}</div><div class="lbl">✅ Đạt</div></div>
+        <div class="summary-box box-fail"><div class="num">${failCount}</div><div class="lbl">❌ Thiếu</div></div>
+        <div class="summary-box box-warn"><div class="num">${warnCount}</div><div class="lbl">⚠️ Sai giá trị</div></div>
+      </div>`;
+
+    // Table
+    html += `
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tiêu chí</th>
+            <th>Yêu cầu</th>
+            <th>Hợp đồng thực tế</th>
+            <th>Kết quả</th>
+            <th>Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    items.forEach((item, idx) => {
+      const statusClass = item.ket_qua === 'DAT' ? 'status-pass' : item.ket_qua === 'SAI' ? 'status-warn' : 'status-fail';
+      const statusLabel = item.ket_qua === 'DAT' ? '✅ Đạt' : item.ket_qua === 'SAI' ? '⚠️ Sai' : '❌ Thiếu';
+      html += `
+        <tr>
+          <td>${item.stt ?? idx + 1}</td>
+          <td>${escHtml(item.tieu_chi || '')}</td>
+          <td>${escHtml(item.yeu_cau || '')}</td>
+          <td>${escHtml(item.hop_dong || '—')}</td>
+          <td class="${statusClass}">${statusLabel}</td>
+          <td>${escHtml(item.ghi_chu || '')}</td>
+        </tr>`;
+    });
+
+    html += `</tbody></table>`;
+
+    // Conclusion
+    const cls = verdict === 'DAT' ? 'pass' : failCount > 0 ? 'fail' : 'warn';
+    const verdictLabel = verdict === 'DAT' ? '✅ HỢP ĐỒNG ĐẠT YÊU CẦU' : '❌ HỢP ĐỒNG CHƯA ĐẠT YÊU CẦU';
+    html += `
+      <div class="conclusion ${cls}">
+        <strong>${verdictLabel}</strong>
+        ${escHtml(summary)}
+      </div>`;
+
+    content.innerHTML = html;
+  }
+
+  function clearAll() {
+    document.getElementById('criteria').value = '';
+    document.getElementById('contract').value = '';
+    document.getElementById('resultArea').style.display = 'none';
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>

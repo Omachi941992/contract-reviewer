@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contract Review Agent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    mark.cite { cursor: pointer; border-radius: 3px; padding: 0 1px; }
+    mark.mark-dat  { background: #bbf7d0; }                                   /* Đạt - xanh */
+    mark.mark-sai  { background: #fecaca; }                                   /* Sai - đỏ */
+    mark.mark-risk { background: #fed7aa; text-decoration: underline wavy #ea580c; } /* Rủi ro - cam */
+    mark.active { outline: 2px solid #2563eb; }
+    .flash { animation: flashbg 1.4s ease-out; }
+    @keyframes flashbg { 0% { background: #fde68a; } 100% { background: transparent; } }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800">
+
+  <header class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <svg class="w-11 h-11" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ZaloPay">
+          <rect x="1.5" y="1.5" width="45" height="45" rx="11" fill="white" stroke="#E5E7EB" stroke-width="1.5"/>
+          <text x="24" y="23" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="800" font-size="13" fill="#0068FF">Zalo</text>
+          <text x="24" y="34" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="800" font-size="13" fill="#00B14F">pay</text>
+        </svg>
+        <div>
+          <h1 class="text-2xl font-bold text-blue-600">Contract Review Agent</h1>
+          <p class="text-sm text-gray-500 mt-0.5">Đối chiếu hợp đồng với tiêu chí xét duyệt tự động bằng AI</p>
+        </div>
+      </div>
+      <a href="/admin" class="text-sm text-gray-400 hover:text-blue-500 transition">⚙️ Quản lý tiêu chí</a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+
+    <!-- Nhập liệu: tiêu chí + nội dung hợp đồng -->
+    <div class="bg-white rounded-2xl shadow p-6 mb-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- Cột trái: Tiêu chí -->
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <span class="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full">Tiêu chí</span>
+            <span class="font-semibold text-gray-700">Chọn loại hợp đồng & tiêu chí xét duyệt</span>
+          </div>
+
+          <div class="flex items-center gap-2 mb-3 flex-wrap">
+            <label class="text-sm text-gray-500 font-medium">Loại hợp đồng:</label>
+            <select id="criteriaTemplate" onchange="applyTemplate()"
+              class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white">
+              <option value="">-- Chọn loại hợp đồng --</option>
+            </select>
+          </div>
+          <p class="text-xs text-gray-400 italic mb-3">Chọn để nạp bộ tiêu chí — bạn có thể chỉnh sửa tự do, không ảnh hưởng template gốc.</p>
+
+          <textarea id="criteria" rows="12"
+            placeholder="Chọn loại hợp đồng bên trên để nạp tiêu chí, hoặc tự nhập tiêu chí vào đây..."
+            class="w-full border border-gray-200 rounded-xl p-3 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+          ></textarea>
+        </div>
+
+        <!-- Cột phải: Nội dung hợp đồng -->
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <span class="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">Hợp đồng</span>
+            <span class="font-semibold text-gray-700">Nội dung hợp đồng cần review</span>
+          </div>
+
+          <!-- Tab switch -->
+          <div class="flex gap-2 mb-3">
+            <button id="tabUpload" onclick="switchTab('upload')"
+              class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white transition">
+              📎 Upload file
+            </button>
+            <button id="tabPaste" onclick="switchTab('paste')"
+              class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+              📋 Dán text
+            </button>
+          </div>
+
+          <div id="panelUpload">
+            <label class="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer bg-blue-50 hover:bg-blue-100 transition" id="dropZone">
+              <span class="text-3xl mb-2">📄</span>
+              <span class="text-sm text-blue-600 font-medium">Kéo thả file vào đây hoặc click để chọn</span>
+              <span class="text-xs text-gray-400 mt-1">Hỗ trợ: PDF, DOCX, TXT</span>
+              <input id="contractFile" type="file" accept=".pdf,.docx,.txt" class="hidden" onchange="onFileSelected(this)" />
+            </label>
+            <div id="fileInfo" class="hidden mt-3 flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+              <span class="text-green-600 text-xl">✅</span>
+              <div>
+                <div id="fileName" class="font-medium text-sm text-green-700"></div>
+                <div id="fileSize" class="text-xs text-green-500"></div>
+              </div>
+              <button onclick="clearFile()" class="ml-auto text-gray-400 hover:text-red-400 text-sm">✕ Xóa</button>
+            </div>
+          </div>
+
+          <div id="panelPaste" class="hidden">
+            <textarea id="contractText" rows="12"
+              placeholder="Dán nội dung hợp đồng vào đây..."
+              class="w-full border border-gray-200 rounded-xl p-3 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+            ></textarea>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex items-center gap-4 mb-8 flex-wrap">
+      <button id="btnAnalyze" onclick="analyze()"
+        class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold px-8 py-3 rounded-xl transition text-sm flex items-center gap-2">
+        ⚡ Phân tích ngay
+      </button>
+      <button onclick="clearAll()"
+        class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold px-6 py-3 rounded-xl transition text-sm">
+        🗑 Xóa tất cả
+      </button>
+      <div id="analyzeSpinner" class="hidden items-center gap-2 text-blue-600 text-sm font-medium">
+        <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+        </svg>
+        Đang phân tích hợp đồng...
+      </div>
+    </div>
+
+    <!-- Result: 2 cột — hợp đồng gốc (trái) + kết quả (phải) -->
+    <div id="resultArea" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <!-- Trái: hợp đồng gốc có tô trích dẫn -->
+        <div class="bg-white rounded-2xl shadow p-6 order-2 lg:order-1 lg:sticky lg:top-4">
+          <h2 class="text-lg font-bold text-blue-600 border-b border-blue-100 pb-3 mb-3">📄 Hợp đồng gốc</h2>
+          <p class="text-xs text-gray-400 mb-3">Đoạn tô màu là nơi trích dẫn — bấm để xem mục tương ứng bên phải.</p>
+          <div id="contractView" class="text-sm leading-relaxed whitespace-pre-wrap break-words max-h-[72vh] overflow-y-auto pr-2 text-gray-700"></div>
+        </div>
+        <!-- Phải: kết quả đối chiếu -->
+        <div class="bg-white rounded-2xl shadow p-6 order-1 lg:order-2">
+          <h2 class="text-lg font-bold text-blue-600 border-b border-blue-100 pb-3 mb-4">📋 Kết quả đối chiếu</h2>
+          <div id="metaNote" class="hidden mb-4 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"></div>
+          <div id="resultContent"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let criteriaStore = {};   // loaded from /criteria
+
+    // ── Init: load templates vào dropdown ──────────────────────────────────────
+    (async function init() {
+      try {
+        const r = await fetch('/criteria');
+        criteriaStore = await r.json();
+        const sel = document.getElementById('criteriaTemplate');
+        Object.entries(criteriaStore).forEach(([k, v]) => {
+          const opt = document.createElement('option');
+          opt.value = k;
+          opt.textContent = v.label;
+          sel.appendChild(opt);
+        });
+      } catch(e) { console.error('load criteria', e); }
+    })();
+
+    // ── Tab switch ─────────────────────────────────────────────────────────────
+    function switchTab(tab) {
+      const isUpload = tab === 'upload';
+      document.getElementById('panelUpload').classList.toggle('hidden', !isUpload);
+      document.getElementById('panelPaste').classList.toggle('hidden', isUpload);
+      document.getElementById('tabUpload').className = 'tab-btn px-4 py-2 rounded-lg text-sm font-medium transition ' +
+        (isUpload ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+      document.getElementById('tabPaste').className = 'tab-btn px-4 py-2 rounded-lg text-sm font-medium transition ' +
+        (!isUpload ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+    }
+
+    // ── File selection ─────────────────────────────────────────────────────────
+    function onFileSelected(input) {
+      const file = input.files[0];
+      if (!file) return;
+      document.getElementById('fileInfo').classList.remove('hidden');
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+      detectType({ file: file });   // tự nhận diện loại hợp đồng
+    }
+
+    // ── Tự nhận diện loại hợp đồng (không chặn người dùng nếu lỗi) ──────────────
+    async function detectType(opts) {
+      const sel = document.getElementById('criteriaTemplate');
+      const crit = document.getElementById('criteria');
+      // Chỉ tự điền khi người dùng CHƯA chọn template & CHƯA nhập tiêu chí
+      if (sel.value || crit.value.trim()) return;
+      try {
+        let resp;
+        if (opts.file) {
+          const fd = new FormData(); fd.append('contract_file', opts.file);
+          resp = await fetch('/detect-type', { method: 'POST', body: fd });
+        } else if (opts.text) {
+          resp = await fetch('/detect-type', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contract: opts.text })
+          });
+        } else return;
+        const d = await resp.json();
+        if (d.key && criteriaStore[d.key] && !sel.value && !crit.value.trim()) {
+          sel.value = d.key;
+          crit.value = d.criteria || criteriaStore[d.key].criteria;
+          showToast('🔎 Đã tự nhận diện: ' + (d.label || criteriaStore[d.key].label));
+        }
+      } catch (e) { /* im lặng */ }
+    }
+
+    function showToast(msg) {
+      let t = document.getElementById('toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'toast';
+        t.className = 'fixed bottom-6 right-6 bg-gray-800 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-500';
+        document.body.appendChild(t);
+      }
+      t.textContent = msg; t.style.opacity = '1';
+      clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+    }
+
+    function clearFile() {
+      document.getElementById('contractFile').value = '';
+      document.getElementById('fileInfo').classList.add('hidden');
+    }
+
+    // Drag & drop
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-blue-500'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-blue-500'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-500');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById('contractFile').files = dt.files;
+        onFileSelected(document.getElementById('contractFile'));
+      }
+    });
+
+    // Dán text xong (blur) -> tự nhận diện loại hợp đồng nếu đủ dài
+    document.getElementById('contractText').addEventListener('blur', function () {
+      const t = this.value.trim();
+      if (t.length >= 200) detectType({ text: t });
+    });
+
+    // ── Template pre-fill (no overwrite) ─────────────────────────────────────
+    function applyTemplate() {
+      const key = document.getElementById('criteriaTemplate').value;
+      if (!key || !criteriaStore[key]) return;
+      document.getElementById('criteria').value = criteriaStore[key].criteria;
+    }
+
+    // ── Analyze ───────────────────────────────────────────────────────────────
+    async function analyze() {
+      const isPaste = !document.getElementById('panelPaste').classList.contains('hidden');
+      const criteria = document.getElementById('criteria').value.trim();
+      const fileInput = document.getElementById('contractFile');
+      const contractText = document.getElementById('contractText').value.trim();
+
+      if (!criteria) { alert('Vui lòng chọn loại hợp đồng hoặc nhập tiêu chí (Bước 1)'); return; }
+
+      const btn = document.getElementById('btnAnalyze');
+      const spinner = document.getElementById('analyzeSpinner');
+      const resultArea = document.getElementById('resultArea');
+
+      btn.disabled = true;
+      spinner.classList.remove('hidden'); spinner.classList.add('flex');
+      resultArea.classList.add('hidden');
+
+      try {
+        let resp;
+
+        if (!isPaste && fileInput.files && fileInput.files[0]) {
+          // File upload → multipart
+          const fd = new FormData();
+          fd.append('contract_file', fileInput.files[0]);
+          fd.append('criteria', criteria);
+          resp = await fetch('/analyze', { method: 'POST', body: fd });
+        } else {
+          // Paste text → JSON
+          if (!contractText) { alert('Vui lòng upload file hợp đồng hoặc dán text (Bước 2)'); return; }
+          resp = await fetch('/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ criteria, contract: contractText })
+          });
+        }
+
+        const data = await resp.json();
+        if (data.error) { showError(data.error); return; }
+        renderResult(data);
+
+      } catch (e) {
+        showError('Lỗi kết nối tới server: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden'); spinner.classList.remove('flex');
+      }
+    }
+
+    // ── Render result ─────────────────────────────────────────────────────────
+    function renderResult(data) {
+      const items   = data.items || [];
+      const tong    = data.tong_ket || {};
+      const meta    = data._meta || {};
+      const pass    = tong.dat   != null ? tong.dat   : items.filter(i => i.ket_qua === 'DAT').length;
+      const fail    = tong.thieu != null ? tong.thieu : items.filter(i => i.ket_qua === 'THIEU').length;
+      const warn    = tong.sai   != null ? tong.sai   : items.filter(i => i.ket_qua === 'SAI').length;
+      const total   = tong.tong  != null ? tong.tong  : items.length;
+      const verdict = tong.ket_luan || (fail + warn === 0 ? 'DAT' : 'KHONG_DAT');
+      const summary = tong.tom_tat || '';
+
+      // Meta note (long-doc / truncation)
+      const metaNote = document.getElementById('metaNote');
+      let notes = [];
+      if (meta.mode === 'retrieval') notes.push('📑 Tài liệu dài — đã định vị & phân tích theo ' + meta.chunks + ' tiêu chí.');
+      else if (meta.mode === 'mapreduce') notes.push('📑 Tài liệu dài — đã phân tích theo ' + meta.chunks + ' phần.');
+      if (meta.truncated) notes.push('⚠️ Tài liệu quá dài đã được cắt bớt để phân tích.');
+      if (notes.length) { metaNote.textContent = notes.join(' '); metaNote.classList.remove('hidden'); }
+      else metaNote.classList.add('hidden');
+
+      let html = '<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">';
+      html += '<div class="bg-blue-50 rounded-xl p-4 text-center"><div class="text-3xl font-bold text-blue-600">' + total + '</div><div class="text-xs text-blue-500 mt-1 font-medium">Tổng tiêu chí</div></div>';
+      html += '<div class="bg-green-50 rounded-xl p-4 text-center"><div class="text-3xl font-bold text-green-600">' + pass + '</div><div class="text-xs text-green-600 mt-1 font-medium">✅ Đạt</div></div>';
+      html += '<div class="bg-yellow-50 rounded-xl p-4 text-center"><div class="text-3xl font-bold text-yellow-600">' + fail + '</div><div class="text-xs text-yellow-600 mt-1 font-medium">❌ Thiếu</div></div>';
+      html += '<div class="bg-red-50 rounded-xl p-4 text-center"><div class="text-3xl font-bold text-red-500">' + warn + '</div><div class="text-xs text-red-500 mt-1 font-medium">⚠️ Sai giá trị</div></div>';
+      html += '</div>';
+
+      html += '<div class="overflow-x-auto mb-6"><table class="w-full text-sm border-collapse">';
+      html += '<thead><tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">';
+      html += '<th class="px-3 py-3 text-center font-bold w-8">#</th>';
+      html += '<th class="px-3 py-3 text-center font-bold">Tiêu chí</th>';
+      html += '<th class="px-3 py-3 text-center font-bold">Thông tin review</th>';
+      html += '<th class="px-3 py-3 text-center font-bold w-24">Kết quả</th>';
+      html += '<th class="px-3 py-3 text-center font-bold">Ghi chú</th>';
+      html += '</tr></thead><tbody class="divide-y divide-gray-100">';
+
+      items.forEach(function(item, idx) {
+        var statusHtml;
+        if (item.ket_qua === 'DAT') {
+          statusHtml = '<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">✅ Đạt</span>';
+        } else if (item.ket_qua === 'SAI') {
+          statusHtml = '<span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">⚠️ Sai</span>';
+        } else {
+          statusHtml = '<span class="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-1 rounded-full">❌ Thiếu</span>';
+        }
+        var thucTeClass = item.ket_qua === 'DAT' ? 'text-gray-500' : item.ket_qua === 'SAI' ? 'text-red-500 font-semibold' : 'text-yellow-600 font-semibold italic';
+
+        // Trích dẫn + link nhảy sang cột trái nếu có offset
+        var citation = '';
+        var trichDan = (item.trich_dan || '').trim();
+        var viTri    = (item.vi_tri || '').trim();
+        var hasSpan  = item.trich_start != null;
+        if (trichDan) {
+          var loc = viTri ? (esc(viTri) + ' — ') : '';
+          var jump = hasSpan ? '<a onclick="event.stopPropagation();jumpToMark(\'cite-' + item.stt + '\')" class="cursor-pointer text-indigo-500 hover:text-indigo-700">↪ xem trong hợp đồng</a>' : '';
+          citation = '<details class="mt-1.5">'
+            + '<summary class="cursor-pointer text-xs text-indigo-500 hover:text-indigo-700 select-none">📍 ' + loc + 'Xem trích dẫn</summary>'
+            + '<div class="mt-1 text-xs text-gray-600 italic bg-gray-50 border-l-2 border-indigo-300 rounded px-2 py-1.5">«' + esc(trichDan) + '» ' + jump + '</div>'
+            + '</details>';
+        } else if (item.ket_qua === 'THIEU') {
+          citation = '<div class="mt-1 text-xs text-gray-400 italic">📍 Không tìm thấy điều khoản trong hợp đồng</div>';
+        }
+
+        var clickable = hasSpan ? ' cursor-pointer' : '';
+        var onclick = hasSpan ? ' onclick="jumpToMark(\'cite-' + item.stt + '\')"' : '';
+        html += '<tr id="row-' + item.stt + '" class="hover:bg-gray-50 transition' + clickable + '"' + onclick + '>';
+        html += '<td class="px-3 py-3 text-gray-400 align-top">' + (item.stt != null ? item.stt : idx + 1) + '</td>';
+        html += '<td class="px-3 py-3 font-medium text-gray-700 align-top">' + esc(item.tieu_chi || '') + '</td>';
+        html += '<td class="px-3 py-3 align-top"><div class="' + thucTeClass + '">' + esc(item.ket_qua_thuc_te || '—') + '</div>' + citation + '</td>';
+        html += '<td class="px-3 py-3 text-center align-top">' + statusHtml + '</td>';
+        html += '<td class="px-3 py-3 text-gray-500 text-xs align-top">' + esc(item.ghi_chu || '') + '</td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+
+      // ── Khối cảnh báo rủi ro NGOÀI tiêu chí ──
+      var risks = data.rui_ro || [];
+      if (risks.length) {
+        html += '<div class="mb-6"><div class="font-bold text-orange-600 mb-2">⚠️ Cảnh báo rủi ro (' + risks.length + ')</div>';
+        risks.forEach(function(r, i) {
+          var mu = r.muc_do === 'cao' ? 'bg-red-100 text-red-700'
+                 : r.muc_do === 'thap' ? 'bg-gray-100 text-gray-600'
+                 : 'bg-orange-100 text-orange-700';
+          var loc = (r.vi_tri || '').trim() ? '<span class="text-xs text-gray-400 ml-auto">' + esc(r.vi_tri) + '</span>' : '';
+          var hasSpan = r.trich_start != null;
+          var rclick = hasSpan ? ' cursor-pointer' : '';
+          var ronclick = hasSpan ? ' onclick="jumpToMark(\'risk-' + i + '\')"' : '';
+          html += '<div id="riskrow-' + i + '" class="border border-orange-100 bg-orange-50 rounded-lg p-3 mb-2 hover:bg-orange-100 transition' + rclick + '"' + ronclick + '>';
+          html += '<div class="flex items-center gap-2 mb-1"><span class="text-xs font-bold px-2 py-0.5 rounded-full ' + mu + '">' + (r.muc_do || 'trung').toUpperCase() + '</span><span class="font-medium text-sm text-gray-800">' + esc(r.mo_ta || '') + '</span>' + loc + '</div>';
+          if (r.ghi_chu) html += '<div class="text-xs text-gray-600 mb-1">' + esc(r.ghi_chu) + '</div>';
+          html += '<div class="text-xs text-gray-500 italic">«' + esc((r.trich_dan || '').trim()) + '»</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+
+      html += '<div class="bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-5">';
+      html += '<div class="font-bold text-base mb-1">📋 KẾT QUẢ REVIEW</div>';
+      html += '<div class="text-sm leading-relaxed">' + esc(summary) + '</div>';
+      html += '</div>';
+
+      document.getElementById('resultContent').innerHTML = html;
+
+      // ── Render cột trái: hợp đồng gốc + tô trích dẫn theo offset ──
+      var spans = [];
+      items.forEach(function(it) {
+        if (it.trich_start != null && it.ket_qua !== 'THIEU') {
+          spans.push({ start: it.trich_start, end: it.trich_end,
+            cls: it.ket_qua === 'SAI' ? 'mark-sai' : 'mark-dat',
+            id: 'cite-' + it.stt, row: 'row-' + it.stt });
+        }
+      });
+      risks.forEach(function(r, i) {
+        if (r.trich_start != null) spans.push({ start: r.trich_start, end: r.trich_end,
+          cls: 'mark-risk', id: 'risk-' + i, row: 'riskrow-' + i });
+      });
+      document.getElementById('contractView').innerHTML = renderContract(data._contract || '', spans);
+
+      document.getElementById('resultArea').classList.remove('hidden');
+      document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Dựng HTML hợp đồng với <mark> tại các offset (escape từng đoạn, bỏ qua chồng lấn)
+    function renderContract(text, spans) {
+      spans = spans.filter(function(s){ return s.start != null && s.end != null && s.end > s.start; })
+                   .sort(function(a,b){ return a.start - b.start || (b.end-b.start)-(a.end-a.start); });
+      var out = '', cursor = 0;
+      spans.forEach(function(s){
+        if (s.start < cursor) return;  // chồng lấn -> bỏ qua mark sau
+        out += esc(text.slice(cursor, s.start));
+        out += '<mark id="m-' + s.id + '" class="cite ' + s.cls + '" onclick="jumpToRow(\'' + s.row + '\')">'
+             + esc(text.slice(s.start, s.end)) + '</mark>';
+        cursor = s.end;
+      });
+      out += esc(text.slice(cursor));
+      return out || esc(text);
+    }
+
+    function flashEl(el){ if(!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+
+    function jumpToMark(id){
+      var el = document.getElementById('m-' + id);
+      if(!el) return;
+      document.querySelectorAll('#contractView mark.active').forEach(function(m){ m.classList.remove('active'); });
+      el.classList.add('active');
+      el.scrollIntoView({ behavior:'smooth', block:'center' });
+      flashEl(el);
+    }
+
+    function jumpToRow(rowId){
+      var el = document.getElementById(rowId);
+      if(!el) return;
+      el.scrollIntoView({ behavior:'smooth', block:'center' });
+      flashEl(el);
+    }
+
+    function showError(msg) {
+      document.getElementById('metaNote').classList.add('hidden');
+      document.getElementById('resultContent').innerHTML =
+        '<div class="bg-red-50 border-l-4 border-red-500 rounded-xl p-5 text-red-700 text-sm">❌ ' + esc(msg) + '</div>';
+      document.getElementById('resultArea').classList.remove('hidden');
+    }
+
+    function clearAll() {
+      clearFile();
+      document.getElementById('contractText').value = '';
+      document.getElementById('criteria').value = '';
+      document.getElementById('criteriaTemplate').value = '';
+      document.getElementById('contractView').innerHTML = '';
+      document.getElementById('resultArea').classList.add('hidden');
+    }
+
+    function esc(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+# GreenNode AgentBase - Deploy config
+# Tham khảo: /agentbase-deploy
+
+name: contract-review-agent
+description: "AI agent kiểm tra hợp đồng theo tiêu chí xét duyệt"
+
+runtime:
+  type: custom                    # Custom Agent runtime
+  flavor: runtime-s2-general-4x8  # 4 vCPU / 8GB — flavor hợp lệ đang dùng (cpu-small KHÔNG tồn tại)
+                                  # flavor nhỏ hơn khả dụng: runtime-s2-general-2x4 (2 vCPU / 4GB)
+  port: 8080
+  visibility: PUBLIC              # hoặc VPC nếu dùng nội bộ
+  # Đã deploy: runtime-e059f547-e3bf-430b-8681-d72c0d6a1ceb
+
+env:
+  # Đặt các biến này trong GreenNode Secret Manager hoặc qua UI
+  - name: API_URL
+    value: "https://maas-llm-aiplatform-hcm.api.vngcloud.vn/v1/chat/completions"
+  - name: MODEL
+    value: "minimax/minimax-m2.5"
+  # API_KEY: set qua secret (KHÔNG hardcode)
+  - name: API_KEY
+    secret: contract-review-api-key   # tên secret trong AgentBase
+
+health_check:
+  path: /
+  port: 8080
+  initial_delay: 10
+  period: 30

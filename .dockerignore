@@ -1,0 +1,20 @@
+.env
+.git
+__pycache__
+*.pyc
+*.pyo
+.venv
+venv
+*.md
+.agentbase/
+
+# Credentials & nội bộ — TUYỆT ĐỐI không đóng vào image
+.greennode.json
+iam-credentials.json
+.claude/
+*.bat
+cr_login.py
+iam_login.py
+gen_docx*.js
+.dockerignore
+Dockerfile

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Quản lý tiêu chí</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800">
+
+  <header class="bg-white shadow-sm">
+    <div class="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">⚙️</span>
+        <div>
+          <h1 class="text-xl font-bold text-gray-800">Quản lý bộ tiêu chí</h1>
+          <p class="text-sm text-gray-400">Thêm, chỉnh sửa, xóa template tiêu chí theo loại hợp đồng</p>
+        </div>
+      </div>
+      <a href="/" class="text-sm text-blue-500 hover:text-blue-700 transition">← Về trang chính</a>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-8">
+
+    <!-- Add / Edit form -->
+    <div class="bg-white rounded-2xl shadow p-6 mb-8">
+      <h2 id="formTitle" class="text-base font-bold text-gray-700 mb-4">➕ Thêm bộ tiêu chí mới</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Key (mã định danh)</label>
+          <input id="fKey" type="text" placeholder="vd: hop_dong_lao_dong"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+          <p class="text-xs text-gray-400 mt-1">Chỉ dùng chữ thường, số, dấu gạch dưới. Không thể đổi sau khi tạo.</p>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Tên hiển thị</label>
+          <input id="fLabel" type="text" placeholder="vd: Hợp đồng lao động"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Nội dung tiêu chí</label>
+        <textarea id="fCriteria" rows="10" placeholder="Nhập từng tiêu chí, mỗi dòng một tiêu chí..."
+          class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+      </div>
+
+      <!-- Bước tùy chọn: nhờ AI chuẩn hóa tiêu chí (giữ nguyên ý nghĩa) -->
+      <div class="mb-4">
+        <button type="button" onclick="recommendCriteria()"
+          class="text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold px-4 py-2 rounded-xl transition">
+          ✨ Gợi ý tối ưu (AI)
+        </button>
+        <span id="recSpinner" class="hidden ml-3 text-sm text-indigo-500">⏳ Đang phân tích & đề xuất...</span>
+        <p class="text-xs text-gray-400 mt-1">AI chuẩn hóa cách diễn đạt để AI đối chiếu chính xác hơn về sau — <b>không đổi ý nghĩa</b>. Bạn xem lại & chỉnh trước khi áp dụng.</p>
+
+        <div id="recPanel" class="hidden mt-3 border border-indigo-200 rounded-xl p-4 bg-indigo-50">
+          <div class="text-xs font-semibold text-indigo-700 mb-2">📝 Bản tiêu chí đề xuất (có thể chỉnh trực tiếp)</div>
+          <textarea id="recText" rows="10"
+            class="w-full border border-gray-200 rounded-lg p-3 text-sm leading-relaxed resize-y bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
+          <div id="recWarn" class="hidden mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></div>
+          <div id="recNotes" class="mt-2 text-xs text-gray-600"></div>
+          <div class="flex gap-2 mt-3">
+            <button type="button" onclick="applyRecommend()"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">✓ Áp dụng vào ô tiêu chí</button>
+            <button type="button" onclick="document.getElementById('recPanel').classList.add('hidden')"
+              class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold px-4 py-2 rounded-lg text-sm transition">Bỏ qua</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="saveTemplate()"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition">
+          💾 Lưu
+        </button>
+        <button onclick="resetForm()"
+          class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold px-5 py-2.5 rounded-xl text-sm transition">
+          Hủy
+        </button>
+      </div>
+      <div id="saveMsg" class="hidden mt-3 text-sm font-medium text-green-600">✅ Đã lưu thành công!</div>
+      <div id="saveErr" class="hidden mt-3 text-sm font-medium text-red-500"></div>
+    </div>
+
+    <!-- List -->
+    <div class="bg-white rounded-2xl shadow p-6">
+      <h2 class="text-base font-bold text-gray-700 mb-4">📋 Danh sách bộ tiêu chí</h2>
+      <div id="templateList" class="space-y-3">
+        {% for key, val in store.items() %}
+        <div class="border border-gray-100 rounded-xl p-4 hover:border-blue-200 transition" id="row-{{ key }}">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-gray-800">{{ val.label }}</span>
+                <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono">{{ key }}</span>
+              </div>
+              <div id="preview-{{ key }}" class="text-xs text-gray-400 whitespace-pre-wrap line-clamp-2 cursor-pointer" onclick="togglePreview('{{ key }}')" title="Click để xem thêm">{{ val.criteria[:200] }}{% if val.criteria|length > 200 %}…{% endif %}</div>
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
+              <button onclick="editTemplate('{{ key }}', {{ val | tojson }})"
+                class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold px-3 py-1.5 rounded-lg transition">
+                ✏️ Sửa
+              </button>
+              <button onclick="deleteTemplate('{{ key }}', '{{ val.label }}')"
+                class="text-xs bg-red-50 hover:bg-red-100 text-red-500 font-semibold px-3 py-1.5 rounded-lg transition">
+                🗑 Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm">Chưa có bộ tiêu chí nào.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let editingKey = null;
+    let expanded = {};
+
+    function togglePreview(key) {
+      const el = document.getElementById('preview-' + key);
+      expanded[key] = !expanded[key];
+      if (expanded[key]) {
+        el.classList.remove('line-clamp-2');
+      } else {
+        el.classList.add('line-clamp-2');
+      }
+    }
+
+    function editTemplate(key, val) {
+      editingKey = key;
+      document.getElementById('fKey').value = key;
+      document.getElementById('fKey').disabled = true;
+      document.getElementById('fLabel').value = val.label;
+      document.getElementById('fCriteria').value = val.criteria;
+      document.getElementById('formTitle').textContent = '✏️ Chỉnh sửa: ' + val.label;
+      document.getElementById('saveMsg').classList.add('hidden');
+      document.getElementById('saveErr').classList.add('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      editingKey = null;
+      document.getElementById('fKey').value = '';
+      document.getElementById('fKey').disabled = false;
+      document.getElementById('fLabel').value = '';
+      document.getElementById('fCriteria').value = '';
+      document.getElementById('formTitle').textContent = '➕ Thêm bộ tiêu chí mới';
+      document.getElementById('saveMsg').classList.add('hidden');
+      document.getElementById('saveErr').classList.add('hidden');
+    }
+
+    function esc(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ── Bước AI: chuẩn hóa tiêu chí (giữ nguyên ý nghĩa) ──
+    async function recommendCriteria() {
+      const criteria = document.getElementById('fCriteria').value.trim();
+      const errEl = document.getElementById('saveErr');
+      if (!criteria) {
+        errEl.textContent = '❌ Nhập nội dung tiêu chí trước khi xin gợi ý.';
+        errEl.classList.remove('hidden'); return;
+      }
+      errEl.classList.add('hidden');
+      const sp = document.getElementById('recSpinner');
+      sp.classList.remove('hidden');
+      try {
+        const fd = new FormData(); fd.append('criteria', criteria);
+        const r = await fetch('/admin/recommend', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (d.error) { alert('Lỗi: ' + d.error); return; }
+
+        document.getElementById('recText').value = d.improved || '';
+
+        const notes = d.notes || [];
+        document.getElementById('recNotes').innerHTML = notes.length
+          ? '<div class="font-semibold mb-1">Đã chuẩn hóa (chỉ diễn đạt):</div><ul class="list-disc pl-5 space-y-0.5">'
+            + notes.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul>'
+          : '';
+
+        const warnEl = document.getElementById('recWarn');
+        const warns = d.warnings || [];
+        if (warns.length) {
+          warnEl.innerHTML = '⚠️ <b>Phát hiện số/giá trị có thể bị đổi</b> — hãy kiểm tra kỹ trước khi áp dụng:<br>' + warns.map(esc).join('<br>');
+          warnEl.classList.remove('hidden');
+        } else {
+          warnEl.classList.add('hidden');
+        }
+        document.getElementById('recPanel').classList.remove('hidden');
+      } catch (e) {
+        alert('Lỗi kết nối: ' + e.message);
+      } finally {
+        sp.classList.add('hidden');
+      }
+    }
+
+    function applyRecommend() {
+      document.getElementById('fCriteria').value = document.getElementById('recText').value;
+      document.getElementById('recPanel').classList.add('hidden');
+      document.getElementById('fCriteria').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    async function saveTemplate() {
+      const key      = document.getElementById('fKey').value.trim().toLowerCase().replace(/\s+/g, '_');
+      const label    = document.getElementById('fLabel').value.trim();
+      const criteria = document.getElementById('fCriteria').value.trim();
+      const errEl    = document.getElementById('saveErr');
+      const msgEl    = document.getElementById('saveMsg');
+
+      errEl.classList.add('hidden');
+      msgEl.classList.add('hidden');
+
+      if (!key || !label || !criteria) {
+        errEl.textContent = '❌ Vui lòng điền đầy đủ Key, Tên hiển thị và Tiêu chí.';
+        errEl.classList.remove('hidden'); return;
+      }
+
+      const fd = new FormData();
+      fd.append('key', key);
+      fd.append('label', label);
+      fd.append('criteria', criteria);
+
+      const r = await fetch('/admin/save', { method: 'POST', body: fd });
+      const data = await r.json();
+      if (data.error) {
+        errEl.textContent = '❌ ' + data.error; errEl.classList.remove('hidden'); return;
+      }
+      msgEl.classList.remove('hidden');
+      setTimeout(() => location.reload(), 800);
+    }
+
+    async function deleteTemplate(key, label) {
+      if (!confirm('Xóa bộ tiêu chí "' + label + '"?\nThao tác này không thể hoàn tác.')) return;
+      const r = await fetch('/admin/delete/' + key, { method: 'POST' });
+      const data = await r.json();
+      if (data.ok) {
+        document.getElementById('row-' + key).remove();
+      } else {
+        alert('Lỗi: ' + (data.error || 'Không xóa được'));
+      }
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "hợp_đồng_zns": {
+    "label": "Hợp đồng ZNS",
+    "criteria": "1. ZNS hoặc ZBS gửi tin bằng số điện thoại (có hoặc không có nút thao tác CTA): đơn giá bằng 85% đơn giá Zalo công khai tại https://zalo.cloud\r\n\r\n2. Số lượng ZNS hoặc ZBS (có hoặc không có CTA) nhỏ hơn hoặc bằng 5000 tin/tháng: Miễn phí\r\n\r\n3. Từ tin ZNS hoặc ZBS thứ 5001 trở đi trong tháng: đơn giá ZNS hoặc ZBS và CTA bằng 70% đơn giá Zalo công khai tại https://zalo.cloud\r\n\r\n4. Đơn giá Tin nhắn UID: bằng 100% đơn giá Zalo công khai tại https://zalo.cloud\r\n\r\n5. Phí Dịch Vụ: mức Phí Dịch Vụ mới được thông báo đến Bên A qua email đầu mối liên hệ trước 15 (mười lăm) ngày tính đến ngày bắt đầu áp dụng mức Phí Dịch Vụ mới\r\n\r\n6. Đối soát và thanh toán:\r\n   6.1. Thời hạn đối soát: 03 (ba) ngày đầu tiên sau khi kết thúc mỗi Tháng\r\n   6.2. Thời hạn thanh toán: 03 (ba) ngày sau khi Bên A nhận được email đối soát từ Bên B\r\n   6.3. Trường hợp Bên A không đồng ý với số liệu đối soát: tiếp tục đối soát trong vòng 07 (bảy) ngày tiếp theo\r\n   6.4. Khi có chênh lệch giữa số liệu được Các Bên xác nhận và hóa đơn Bên B đã xuất: Các Bên thống nhất số liệu chênh lệch sẽ chuyển sang kỳ đối soát tiếp theo (nếu có)"
+  }
+}

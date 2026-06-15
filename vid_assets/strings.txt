@@ -1,0 +1,6 @@
+QUY TRÌNH REVIEW HỢP ĐỒNG - PHỤ LỤC
+Nay đã có Contract Review Agent
+Nhân sự phải đọc và kiểm tra từng điều khoản cần review, gây tốn nhiều thời gian
+Tự động đối chiếu nội dung Hợp đồng/Phụ lục với các tiêu chí đã thiết lập
+Phát hiện các điều khoản chưa phù hợp
+Đưa ra cảnh báo, giải thích lý do và gợi ý phương án điều chỉnh

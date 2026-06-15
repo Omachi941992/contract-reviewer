@@ -1,0 +1,21 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+.agentbase/
+
+# Secrets / credentials — never commit
+.greennode.json
+iam-credentials.json
+
+# Claude Code internal skill docs (not part of the project)
+.claude/
+
+# Video build — keep scripts/inputs only, ignore generated media & music
+vid_assets/*
+!vid_assets/gen_assets.ps1
+!vid_assets/filter.txt
+!vid_assets/strings.txt
+!vid_assets/bulb.png
+!vid_assets/cat.jpg
