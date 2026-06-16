@@ -4,7 +4,7 @@ AI agent kiểm tra **Hợp đồng / Phụ lục** theo bộ tiêu chí xét du
 
 Ứng dụng web (Flask) tích hợp LLM, triển khai trên **GreenNode AgentBase**.
 
-▶️ **[Xem video demo (59s)](./Contract%20Review%20Agent.mp4)**
+▶️ **[Xem video demo (59s)](https://github.com/Omachi941992/contract-reviewer/raw/main/Contract%20Review%20Agent.mp4)**
 
 ---
 
@@ -98,7 +98,7 @@ Cấu hình runtime trong `agentbase.yaml` (flavor, port 8080, visibility, secre
 
 ## Video giới thiệu
 
-▶️ **[Xem video demo — Contract Review Agent.mp4](./Contract%20Review%20Agent.mp4)** (59 giây)
+▶️ **[Xem video demo — Contract Review Agent.mp4](https://github.com/Omachi941992/contract-reviewer/raw/main/Contract%20Review%20Agent.mp4)** (59 giây)
 
 > Bấm vào link trên để mở trình phát video của GitHub.
 
