@@ -291,7 +291,7 @@
 
 <script>
   const API_URL = 'https://maas-llm-aiplatform-hcm.api.vngcloud.vn/v1/chat/completions';
-  const API_KEY = 'vn--y8uM4wD9tCxWfPagJmNeeCiFa0MYe6da182fc22454e2e9e4fe07d4dbbfe27E_Z_d5Quu_7su_-2Vc0a-7h9XyDryKM';
+  const API_KEY = '';  // ĐÃ XÓA key khỏi mã nguồn — KHÔNG hardcode API key client-side. Dùng backend (app.py) làm proxy.
   const MODEL   = 'minimax/minimax-m2.5';
 
   function buildPrompt(criteria, contract) {
